@@ -2,6 +2,6 @@
 {
     public interface IMessageQueue
     {
-       public void Publish(string message);
+       public void Publish<T>(T message);
     }
 }

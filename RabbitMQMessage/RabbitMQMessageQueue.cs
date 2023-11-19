@@ -1,42 +1,42 @@
-﻿using RabbitMQ.Client;
+﻿using Newtonsoft.Json;
+using RabbitMQ.Client;
 using System.Text;
 namespace ServerMonitoringSystem.RabbitMQMessage
 {
     public class RabbitMQMessageQueue : IMessageQueue
     {
-        private readonly string _hostName;
-        private readonly string _queueName;
+        private readonly IRabbitMQConfiguration _rabbitMQConfiguration;
 
-        public RabbitMQMessageQueue(string hostName, string queueName)
+        public RabbitMQMessageQueue(IRabbitMQConfiguration rabbitMQConfiguration)
         {
-            _hostName = hostName;
-            _queueName = queueName;
+            _rabbitMQConfiguration = rabbitMQConfiguration;
         }
 
-        public void Publish(string message)
+        public void Publish<T>(T message)
         {
             var factory = new ConnectionFactory()
             {
-                HostName = _hostName,
-                UserName = "guest",
-                Password = "guest"
+                HostName = _rabbitMQConfiguration.HostName,
+                UserName = _rabbitMQConfiguration.UserName,
+                Password = _rabbitMQConfiguration.Password
             };
 
             using (var connection = factory.CreateConnection())
             using (var channel = connection.CreateModel())
             {
-                channel.QueueDeclare(queue: _queueName,
-                                         durable: false,
-                                         exclusive: false,
-                                         autoDelete: false,
-                                         arguments: null);
+                channel.QueueDeclare(queue: _rabbitMQConfiguration.QueueName,
+                                     durable: false,
+                                     exclusive: false,
+                                     autoDelete: false,
+                                     arguments: null);
 
-                var body = Encoding.UTF8.GetBytes(message);
+                var jsonMessage = JsonConvert.SerializeObject(message);
+                var body = Encoding.UTF8.GetBytes(jsonMessage);
                 channel.BasicPublish(exchange: "",
-                                     routingKey: _queueName,
+                                     routingKey: _rabbitMQConfiguration.QueueName,
                                      basicProperties: null,
                                      body: body);
-                Console.WriteLine($"Sent: {message}");
+                Console.WriteLine($"Sent: {jsonMessage}");
             }
         }
     }
